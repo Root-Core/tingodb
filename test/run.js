@@ -5,14 +5,15 @@ var path = require('path');
 var Mocha = require('mocha');
 var mocha = new Mocha();
 var safe = require('safe');
+var node_version = Number(process.versions.node.split('.')[0]);
 
 var optimist = require('optimist')
 	.default('reporter','dot')
 	.alias('R',"reporter")
 	.default('db', 'tingodb')
 	.describe('db', 'tingodb | mongodb')
-    .describe('h', 'Display the usage')
-    .alias('h', 'help')
+	.describe('h', 'Display the usage')
+	.alias('h', 'help')
 	.boolean('quick')
 	.alias('q', 'quick')
 	.describe('quick', 'Run only quick tests')
@@ -25,12 +26,12 @@ var optimist = require('optimist')
 var argv = optimist.argv;
 
 if (argv.help) {
-    optimist.showHelp();
-    process.exit(0);
+	optimist.showHelp();
+	process.exit(0);
 }
 
 var config = {
-	mongo: argv.db == 'mongodb'
+	mongo: argv.db == 'mongodb' && node_version <= 6
 };
 
 var tutils = require('./utils.js');
@@ -89,36 +90,39 @@ var sessions = [
 		console.log('Using defaults');
 		run(cb);
 	}
-]
+];
 
 if (!config.mongo && !argv.default) {
 	sessions.push(function (cb) {
 		console.log('Using global searchInArray');
 		tutils.setConfig({ searchInArray: true , nativeObjectID: false });
 		run(cb);
-	})
+	});
 	sessions.push(function (cb) {
 		console.log('Using BSON ObjectID');
 		tutils.setConfig({ searchInArray: false , nativeObjectID: true });
 		run(cb);
-	})
+	});
 	sessions.push(function (cb) {
 		mocha.grep(/(FS)/);
 		mocha.invert();
 		console.log('InMemory using defaults');
 		tutils.setConfig({ memStore:true });
 		run(cb);
-	})
+	});
 	sessions.push(function (cb) {
 		console.log('InMemory using global searchInArray');
 		tutils.setConfig({ memStore:true, searchInArray: true , nativeObjectID: false });
 		run(cb);
-	})
+	});
 	sessions.push(function (cb) {
 		console.log('InMemory using BSON ObjectID');
 		tutils.setConfig({ memStore:true, searchInArray: false , nativeObjectID: true });
 		run(cb);
-	})
+	});
 }
 
-safe.series(sessions, function (err) { if (err) console.log(err); process.exit(0)});
+safe.series(sessions, function (err) {
+	if (err) console.log(err);
+	process.exit(err ? 1 : 0);
+});

@@ -14,7 +14,7 @@ describe('(FS) Corrupted DB Load', function () {
 		}));
 	}
 	function checkData(done) {
-		safe.forEachSeries(items, function (item, cb) {
+		safe.eachOfSeries(items, function (item, k, cb) {
 			coll.findOne({ k: item.k }, safe.sure(cb, function (doc) {
 				if (item.x) {
 					assert.equal(doc, null);
@@ -50,7 +50,8 @@ describe('(FS) Corrupted DB Load', function () {
 				fs.open(coll._filename, 'r+', safe.sure(done, function (fd) {
 					items = items.slice(0,99);
 					length--;
-					fs.truncate(fd, stats.size-100, done);
+					// [DEP0081] DeprecationWarning: Using fs.truncate with a file descriptor is deprecated.
+					(fs.ftruncate || fs.truncate)(fd, stats.size-100, done);
 				}));
 			}));
 		}));
